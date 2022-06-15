@@ -1,0 +1,486 @@
+---
+title: "Data Wrangling & Visualisation Project"
+output: html_notebook
+---
+Defining the Question
+
+a) Specifying the Data Analysis Question
+The management would like to get your assistance in understanding the current subscribed customers. Your recommendations informed by your analysis will help them make informed decisions on effective customer retention programs.To put it simply, the task is to understand current customers in order to understand how to retain them.
+
+b) Defining the Metric for Success
+The solution will have satisfied the research question when you can identify the factors that contribute to customer churn.
+
+c) Understanding the context
+MTN Telecom offers mobile and internet services to its customers. These services include phone, multiple lines, internet, online security, online backup, device protection, tech support, and streaming TV and movies.
+
+d) Recording the Experimental Design
+The steps to be taken include:
+
+1.Load data set and preview its summarized information to get a feel of what you will be working with.
+
+2.Carry out data cleaning.
+
+3.Carry out data analysis.
+
+4.Interpret results.
+
+5.Provide recommendations based on results of analysis.
+
+5.Challenge your solution.
+
+e) Data Relevance
+For now, the data we have contains churn data which will be critical for our research specific analysis.
+
+```{r}
+#DATA CLEANING AND PREPARATION
+
+#Importing and loading libraries
+library(readr)
+library(ggplot2)
+library(dplyr)
+
+#Loading the data set
+df <- read_csv("https://bit.ly/2ZlpzjF")
+
+#Getting the data set shape
+dim(df)
+
+#Dropping duplicates if any present
+df %>% distinct()
+
+# dropping missing values
+df_1 <- na.omit(df)
+dim(df_1)
+
+#Properly formatting columns to lowercase
+names(df_1) <- tolower(names(df_1))
+
+#Previewing the number of unique values in each column
+colnames(df_1)
+unique(df_1$customerid)
+unique(df_1$seniorcitizen)
+unique(df_1$gender)
+unique(df_1$partner)
+unique(df_1$dependents)
+unique(df_1$tenure)
+unique(df_1$phoneservice)
+unique(df_1$multiplelines)
+unique(df_1$internetservice)
+unique(df_1$onlinesecurity)
+unique(df_1$onlinebackup)
+unique(df_1$deviceprotection)
+unique(df_1$techsupport)
+unique(df_1$streamingtv)
+unique(df_1$streamingmovies)
+unique(df_1$contract)
+unique(df_1$paperlessbilling)
+unique(df_1$paymentmethod)
+unique(df_1$monthlycharges)
+unique(df_1$totalcharges)
+unique(df_1$churn)
+
+#Checking the datatypes
+str(df_1)
+
+#Create a loop to preview the unique values of variables with less than 10 unique values
+my_variables <- list(colnames(df_1))
+my_variables 
+
+for (i in colnames(df_1)){
+    print(length(unique(df_1[[i]])))
+}
+
+#Resolving the issues in the 'senior_citizen' variable
+df_1$seniorcitizen[df_1$seniorcitizen=="0"]<-"No"
+df_1$seniorcitizen[df_1$seniorcitizen=="1"]<-"Yes"
+unique(df_1$seniorcitizen)
+
+#Resolving the issues in the 'payment_method' variable
+df_1$paymentmethod[df_1$paymentmethod=="Mailed checkkk"]<-"Mailed check"
+df_1$paymentmethod[df_1$paymentmethod=="Electronic checkk"]<-"Electronic check"
+unique(df_1$paymentmethod)
+
+#Visual distribution of the out liers using a box plot for the 'tenure', 'monthly_charges' and 'total_charges'
+boxplot(df_1$tenure)
+
+boxplot(df_1$monthlycharges)
+
+boxplot(df_1$totalcharges)
+
+#Performing the IQR method
+#TENURE COLUMN
+Q1 <- quantile(df_1$tenure, .25)
+Q3 <- quantile(df_1$tenure, .75)
+IQR <- IQR(df_1$tenure)
+
+df_1 <- subset(df_1, df_1$tenure > (Q1 - 1.5*IQR) & df_1$tenure < (Q3 + 1.5*IQR))
+
+#MONTHLY_CHARGES
+Q1 <- quantile(df_1$monthlycharges, .25)
+Q3 <- quantile(df_1$monthlycharges, .75)
+IQR <- IQR(df_1$monthlycharges)
+
+df_1 <- subset(df_1, df_1$monthlycharges > (Q1 - 1.5*IQR) & df_1$monthlycharges < (Q3 + 1.5*IQR))
+
+#TOTAL_CHARGES
+Q1 <- quantile(df_1$totalcharges, .25)
+Q3 <- quantile(df_1$totalcharges, .75)
+IQR <- IQR(df_1$totalcharges)
+
+df_1 <- subset(df_1, df_1$totalcharges > (Q1 - 1.5*IQR) & df_1$totalcharges < (Q3 + 1.5*IQR))
+
+#Confirming by checking the shape of our data set
+dim(df_1)
+
+#Loading our exported clean data set
+write.csv(df_1,"telecom_customer_clean.csv", row.names = FALSE)
+clean_df <- read.csv("telecom_customer_clean.csv")
+head(clean_df)
+```
+
+
+```{r}
+# DATA ANALYSIS
+# Research-Specific Analysis
+
+# plotting a pie chart to investigate whether MTN customers churned
+count <- table(clean_df['churn'])
+count
+
+pie_labels <- paste0(round(100 * count/sum(count), 2), "%")
+
+pie(count, labels = pie_labels)
+
+legend("bottomleft", legend = c("Churned", "Not Churned"),fill =  c( "lightblue", "pink"))
+
+
+comment(x) <- "We see that the majority of the customers in this dataset, 73% of the customers are still subscribed to MTN while 26.6% of the customers churned."
+comment(x)
+
+#Let's now make a comparison between male and female subscribers by plotting the distribution of churn by gender
+tbl <- with(clean_df, table(gender, churn))
+ggplot(as.data.frame(tbl), aes(factor(churn), Freq, fill = gender)) +     
+  geom_col(position = 'dodge')
+
+comment(x) <- "Majority of the MTN subscribers are female"
+comment(x)
+
+#We investigate the distribution of churn by senior citizen and recording our observations.Plotting the distribution of churn by senior citizen below
+tbl_1 <- with(clean_df, table(seniorcitizen, churn))
+ggplot(as.data.frame(tbl_1), aes(factor(churn), Freq, fill = seniorcitizen)) +     
+  geom_col(position = 'dodge')
+
+comment(x) <- "Majority of the MTN subscribers are not senior citizens, with the senior citizens likelihood of subscription being low"
+comment(x)
+
+
+#Plotting the distribution of churn by partner and recording our observations.Let's plot the distribution of churn by partner
+tbl_2 <- with(clean_df, table(partner, churn))
+ggplot(as.data.frame(tbl_2), aes(factor(churn), Freq, fill = partner)) +     
+  geom_col(position = 'dodge')
+
+comment(x) <- "Majority of the MTN subscribers who have churned dont have a partnership"
+comment(x)
+
+#Plotting the distribution of churn by dependents and then record your observations.
+tbl_3 <- with(clean_df, table(dependents, churn))
+ggplot(as.data.frame(tbl_3), aes(factor(churn), Freq, fill = dependents)) +     
+  geom_col(position = 'dodge')
+
+comment(x) <- "Majority of the MTN subscribers have no dependents"
+comment(x)
+
+#Plotting the distribution of churn by phone service then recording your observations.
+tbl_4 <- with(clean_df, table(phoneservice, churn))
+ggplot(as.data.frame(tbl_4), aes(factor(churn), Freq, fill = phoneservice)) +     
+  geom_col(position = 'dodge')
+
+comment(x) <- "Majority of the MTN subscribers have a phone service"
+comment(x)
+
+
+#Plotting the distribution of churn by multiple lines and record our observations.
+tbl_5 <- with(clean_df, table(multiplelines, churn))
+ggplot(as.data.frame(tbl_5), aes(factor(churn), Freq, fill = multiplelines)) +     
+  geom_col(position = 'dodge')
+
+comment(x) <- "Majority of the MTN subscribers dont have multiple lines"
+comment(x)
+
+
+#Plotting the distribution of churn by internet service and later record our observations.
+tbl_6 <- with(clean_df, table(internetservice, churn))
+ggplot(as.data.frame(tbl_6), aes(factor(churn), Freq, fill = internetservice)) +     
+  geom_col(position = 'dodge')
+
+comment(x) <- "DSL is the preffered internet service among the subscribers"
+comment(x)
+
+
+#Plotting the distribution of churn by online security and then record our observations below
+tbl_7 <- with(clean_df, table(onlinesecurity, churn))
+ggplot(as.data.frame(tbl_7), aes(factor(churn), Freq, fill = onlinesecurity)) +     
+  geom_col(position = 'dodge')
+
+comment(x) <- "Majority of the MTN subscribers who churned had no online security"
+comment(x)
+
+
+#Plotting the distribution of churn by online backup
+tbl_8 <- with(clean_df, table(onlinebackup, churn))
+ggplot(as.data.frame(tbl_8), aes(factor(churn), Freq, fill = onlinebackup)) +     
+  geom_col(position = 'dodge')
+
+comment(x) <- "Majority of those who unsubscribed had no online backup"
+comment(x)
+
+
+#Plotting the distribution of churn by device protection
+tbl_9 <- with(clean_df, table(deviceprotection, churn))
+ggplot(as.data.frame(tbl_9), aes(factor(churn), Freq, fill = deviceprotection)) +     
+  geom_col(position = 'dodge')
+
+comment(x) <- "Majority of the  subscribers have a method of device protection"
+comment(x)
+
+
+#Plotting the distribution of churn by tech support
+tbl_10 <- with(clean_df, table(techsupport, churn))
+ggplot(as.data.frame(tbl_10), aes(factor(churn), Freq, fill = techsupport)) +     
+  geom_col(position = 'dodge')
+
+comment(x) <- "Majority of the MTN subscribers have no tech support"
+comment(x)
+
+#Plotting the distribution of churn by streaming tv
+tbl_11 <- with(clean_df, table(streamingtv, churn))
+ggplot(as.data.frame(tbl_11), aes(factor(churn), Freq, fill = streamingtv)) +     
+  geom_col(position = 'dodge')
+
+comment(x) <- "Majority of the MTN subscribers have streaming tv option"
+comment(x)
+
+
+#Plotting the distribution of churn by streaming movies
+tbl_12 <- with(clean_df, table(streamingmovies, churn))
+ggplot(as.data.frame(tbl_12), aes(factor(churn), Freq, fill = streamingmovies)) +     
+  geom_col(position = 'dodge')
+
+comment(x) <- "Majority of the MTN subscribers have streaming movies"
+comment(x)
+
+
+#Plotting the distribution of churn by contract
+tbl_13 <- with(clean_df, table(contract, churn))
+ggplot(as.data.frame(tbl_13), aes(factor(churn), Freq, fill = contract)) +     
+  geom_col(position = 'dodge')
+
+comment(x) <- "Month to month contracts have the highest number of MTN subscribers"
+comment(x)
+
+
+#Plotting the distribution of churn by paperless billing
+tbl_14 <- with(clean_df, table(paperlessbilling, churn))
+ggplot(as.data.frame(tbl_14), aes(factor(churn), Freq, fill = paperlessbilling)) +     
+  geom_col(position = 'dodge')
+
+comment(x) <- "Majority of the MTN subscribers prefer paperless billing"
+comment(x)
+
+
+#Plotting the distribution of churn by payment method
+tbl_15 <- with(clean_df, table(paymentmethod, churn))
+ggplot(as.data.frame(tbl_15), aes(factor(churn), Freq, fill = paymentmethod)) +
+  geom_col(position = 'dodge')
+
+comment(x) <- "Majority of the churned MTN subscribers use electronic check payment"
+comment(x)
+
+```
+
+
+```{r}
+#General Analysis
+#Creating a data frame for gender
+
+counts_1 <- table(clean_df['gender'])
+barplot(counts_1, main="Gender Distribution", horiz=TRUE, ylab="Gender",col="#69b3a2")
+
+comment(x) <- "We observe that the number of male and female subscribers is almost the same."
+comment(x)
+
+#Plotting distribution of senior citizens
+counts_2 <- table(clean_df['seniorcitizen'])
+barplot(counts_2, main="Senior citizen Distribution", horiz=TRUE, ylab="Senior Citizen", col= 'orange')
+
+comment(x) <- "Few of the subscribers are senior citizens."
+comment(x)
+
+# Plotting a distribution of subscribers with partners and those without
+counts_3 <- table(clean_df['partner'])
+barplot(counts_3, main="Subscribers with partners Distribution", horiz=TRUE, ylab="Partner", col='pink')
+
+# plotting a distribution of customers with dependents and those without
+counts_4 <- table(clean_df['dependents'])
+barplot(counts_4, main="Customers with dependents Distribution", horiz=TRUE, ylab="Dependents", col="yellow")
+
+comment(x) <- "Majority of the subscribers do not have dependents."
+comment(x)
+
+# Plotting a distribution by tenure
+counts_5 <- table(clean_df['tenure'])
+barplot(counts_5, main="Tenure Distribution", xlab="Tenure", col=heat.colors(10))
+
+comment(x) <- "We observe that the majority have tenure of 1-5 followed by those with tenure between 67-72"
+comment(x)
+
+# plotting distribution of phone service
+counts_6 <- table(clean_df['phoneservice'])
+barplot(counts_6, main="Phone Service Distribution", horiz=TRUE, ylab="Phone Service", col= "coral")
+
+comment(x) <- "Majority of the MTN subscribers have phone service"
+comment(x)
+
+
+# plotting distribution of multiple lines
+counts_7 <- table(clean_df['multiplelines'])
+barplot(counts_7, main="Multiple lines Distribution", xlab="Multiple lines", col="azure")
+
+comment(x) <- "Majority of the MTN subscribers do not have multiple lines"
+comment(x)
+
+
+# plotting distribution of internet service
+counts_8 <- table(clean_df['internetservice'])
+barplot(counts_8, main="Internet Service Distribution", horiz=TRUE, las=1, col="darkseagreen")
+
+comment(x) <- "Many have fiber optic, about three quarters of the same nymber have DSL, and roughly half of that number do not have internet service."
+comment(x)
+
+# plotting a distribution of online security
+counts_9 <- table(clean_df['onlinesecurity'])
+barplot(counts_9, main="Online Security Distribution", horiz=TRUE,las=2,col="steelblue")
+
+comment(x) <- "Majority of the subscribers do not have online security while half of that number has. Fewer still have online security but no internet service."
+comment(x)
+
+# plotting distribution of online backup
+counts_9 <- table(clean_df['onlinebackup'])
+barplot(counts_9, main="Online Backup Distribution", horiz=TRUE, las=2,col="brown")
+
+comment(x) <- "Majority of the customers do not have online backup. Almost the same number has, while fewer have online backup but no internet service."
+comment(x)
+
+
+# plotting distribution of device protection
+counts_10 <- table(clean_df['deviceprotection'])
+barplot(counts_10, main="Device Protection Distribution",horiz=TRUE, las=2,col="darkorchid" )
+
+comment(x) <- "Majority do not have device protection."
+comment(x)
+
+# plotting a distribution of tech support
+counts_11 <- table(clean_df['techsupport'])
+barplot(counts_11, main="Tech Support Distribution", xlab="Tech support",col="tomato")
+
+comment(x) <- "Subscribers who do not receive tech support make up almost half of the data set."
+comment(x)
+
+# plotting a distribution of streaming_tv
+counts_12 <- table(clean_df['streamingtv'])
+barplot(counts_12, main="Streaming TV Distribution", xlab="Streaming TV",col="tan")
+
+comment(x) <- "The number of customers who stream TV and those who do not are almost the same. The number of customers who stream TV but don't have internet service is the least."
+comment(x)
+
+
+# plotting a distribution of streaming movies
+counts_13 <- table(clean_df['streamingmovies'])
+barplot(counts_13, main="Streaming movies Distribution", xlab="Streaming Movies", col="sienna")
+
+comment(x) <- "The number of customers who stream movies and those who do not are almost the same. The number of customers who stream movies but don't have internet service is the least."
+comment(x)
+
+# plotting a pie chart of contract
+counts_14 <- table(clean_df['contract'])
+barplot(counts_14, main="Contract Distribution",horiz=TRUE, las=1, col="mediumpurple")
+
+comment(x) <- "Majority of the subscribers are on month-to-month contracts, followed by two-year contracts, and then one-year contracts.."
+comment(x)
+
+# plotting a pie chart of 'paperless_billing'
+counts_15 <- table(clean_df['paperlessbilling'])
+barplot(counts_15, main="Paperless Billing Distribution", horiz=TRUE, ylab="Paperless Billing",col="honeydew")
+
+comment(x) <- "Majority of the MTN subscribers are using the paperless billing method"
+comment(x)
+
+
+# plotting a horizontal bar chart of payment method
+counts_16 <- table(clean_df['paymentmethod'])
+barplot(counts_16, main="Payment Method Distribution", horiz=TRUE, col="firebrick",las=2)
+
+comment(x) <- "Electronic checks are the most popular form of payment while mailed checks, bank transfers, and credit cards are subsequently and similarly common."
+comment(x)
+
+
+# plotting a distribution of monthly charges
+counts_17 <- table(clean_df['monthlycharges'])
+barplot(counts_17, main="Monthly Charges Distribution", xlab="Monthly Charges",col=heat.colors(10))
+
+comment(x) <- "Majority of the MTN subscribers have low monthly charges"
+comment(x)
+
+
+# we plot a distribution plot (kde) of total charges
+d <- density(clean_df$totalcharges) 
+plot(d) 
+
+comment(x) <- "The density curve is left skewed, meaning the mean is less than the median"
+comment(x)
+
+
+```
+
+
+```{r}
+#SUMMARY OF FINDINGS
+#1. There is no significant difference in churn rate between male and female subscribers. So this is not an area management needs to worry about.
+#2. Majority of the customers are not senior citizens so this makes this data set biased and hard to identify whether being a senior citizen affects churn rate.
+#3. Not having a partner increases the likelihood of churning.
+#4. Not having dependents increases the likelihood of churning.
+#5. Having a phone service affects the likelihood of subscribers staying in business.
+#6. Fiber devices protected ensures those subscribed, retaining their subscription.
+#9. Having an online backup reduces the churn rate.
+#10. Having a safe online environment reduces the churn rate.
+```
+
+
+```{r}
+#RECOMMENDATIONS
+#1.Focus more on meeting the needs of non-senior citizens.
+#2. Focus more on having customers that have partners and/or dependents since these people are less likely to churn. Alternatively, management can come up with services specifically designed for customers without partners and/or dependents. This would require additional research.
+#3. Tech support should be provided to the subscribers.
+#4.Encourage the two-year contract as it has the lowest number of churned subscribers
+#5. Focus more on paperless billing as it is a highly preferred method of billing system among the subscribers.
+#6. Online backup and security should be offered to the subscribers to ensure their subscription to MTN.
+#7. Promote the streaming TV and movie options as they ensure subscription renewal amongst members.
+#8. Focus on improving the electronic check payment method.
+```
+
+
+```{r}
+#CHALLENGING THE SOLUTION
+
+#Did we have the right data?
+#As far as I can tell, we had the right data. However, more data is still needed, particularly those with more customers who churned so we can have a better understanding of why they might have churned.
+
+#Did we have the right question?
+#Yes, we did
+```
+
+
+
+
+
+
